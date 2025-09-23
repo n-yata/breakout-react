@@ -1,5 +1,5 @@
 import React from "react";
-import Breakout from "./Breakout";
+import Breakout from "./component/Breakout";
 
 const App: React.FC = () => {
   return (
