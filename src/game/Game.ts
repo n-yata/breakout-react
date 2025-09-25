@@ -166,34 +166,62 @@ export class Game {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // 通常描画
+    // ボール（オレンジ）
+    this.ball.color = "#FF6B35";
     this.ball.draw(ctx);
+
+    // パドル（ブルー）
+    ctx.fillStyle = "#3B82F6";
     this.paddle.draw(ctx, this.canvas.height);
-    this.bricks.forEach((row) => row.forEach((b) => b.draw(ctx)));
 
-    ctx.font = "16px Arial";
-    ctx.fillStyle = "#000";
+    // ブロック（パステルカラーで行ごとに色分け）
+    const colors = ["#60A5FA", "#34D399", "#FBBF24"]; // ブルー, グリーン, イエロー
+    this.bricks.forEach((row, r) =>
+      row.forEach((b) => {
+        if (b.status === 1) {
+          ctx.fillStyle = colors[r % colors.length];
+          ctx.fillRect(b.x, b.y, this.brickWidth, this.brickHeight);
+          ctx.strokeStyle = "#fff"; // 境界を白で薄く
+          ctx.strokeRect(b.x, b.y, this.brickWidth, this.brickHeight);
+        }
+      })
+    );
+
+    // スコア & ライフ
+    ctx.font = "16px 'Segoe UI', sans-serif";
+    ctx.fillStyle = "#374151"; // グレー文字
+    ctx.textAlign = "left";
     ctx.fillText(`Score: ${this.score}`, 8, 20);
-    ctx.fillText(`Lives: ${this.lives}`, this.canvas.width - 65, 20);
+    ctx.textAlign = "right";
+    ctx.fillText(`Lives: ${this.lives}`, this.canvas.width - 8, 20);
 
+    // 終了画面（モダンカード風）
     if (this.state === "GAMEOVER" || this.state === "WIN") {
-      ctx.fillStyle = "#000";
-      ctx.font = "24px Arial";
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.fillRect(
+        this.canvas.width / 2 - 120,
+        this.canvas.height / 2 - 60,
+        240,
+        120
+      );
+
+      ctx.fillStyle = "#111";
+      ctx.font = "20px 'Segoe UI', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(
-        this.state === "WIN" ? "YOU WIN!" : "GAME OVER",
+        this.state === "WIN" ? "🎉 YOU WIN!" : "💀 GAME OVER",
         this.canvas.width / 2,
         this.canvas.height / 2 - 20
       );
 
-      // Restartボタン
-      ctx.fillStyle = "#0095DD";
-      const btnX = this.canvas.width / 2 - 40;
-      const btnY = this.canvas.height / 2 + 20;
-      ctx.fillRect(btnX, btnY, 80, 30);
+      // Restart ボタン
+      const btnX = this.canvas.width / 2 - 50;
+      const btnY = this.canvas.height / 2 + 10;
+      ctx.fillStyle = "#3B82F6";
+      ctx.fillRect(btnX, btnY, 100, 35);
       ctx.fillStyle = "#fff";
-      ctx.font = "16px Arial";
-      ctx.fillText("Restart", this.canvas.width / 2, btnY + 20);
+      ctx.font = "16px 'Segoe UI', sans-serif";
+      ctx.fillText("Restart", this.canvas.width / 2, btnY + 23);
     }
   }
 }

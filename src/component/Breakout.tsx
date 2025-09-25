@@ -13,8 +13,8 @@ const Breakout: React.FC = () => {
 
     let rafId: number;
     const loop = () => {
-      game.update(); // ← 座標更新
-      game.draw();   // ← 描画
+      game.update();
+      game.draw();
       rafId = requestAnimationFrame(loop);
     };
     loop();
@@ -22,7 +22,27 @@ const Breakout: React.FC = () => {
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  return <canvas ref={canvasRef} style={{ border: "1px solid #000" }} />;
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        background: "#f4f4f4", // モダンな淡い背景
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          border: "2px solid #e5e7eb",
+          borderRadius: "12px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          background: "#ffffff",
+        }}
+      />
+    </div>
+  );
 };
 
 export default Breakout;
