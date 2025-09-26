@@ -1,14 +1,38 @@
-/* ページ全体を中央寄せにする */
-html, body, #root {
+html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
+  background: #f4f4f4;  /* 常に背景グレーで塗りつぶす */
+  overflow-x: hidden;    /* 横方向の余白を強制的に消す */
 }
 
 #root {
+  height: 100%;
+  width: 100%;
+}
+
+/* ページ全体を縦並び */
+.page {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #f4f4f4;
+  flex-direction: column;
+  align-items: center;   /* 横方向中央 */
+  min-height: 100vh;
+}
+
+/* タイトル */
+.title {
+  margin: 40px 0 20px;   /* 上に余白を追加 */
+  font-size: 2rem;
+  font-family: "Segoe UI", sans-serif;
+  color: #111;
+}
+
+/* ゲーム本体のラッパー */
+.game-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center; /* 横中央 */
+  align-items: center;     /* 縦中央 */
+  width: 100%;
 }

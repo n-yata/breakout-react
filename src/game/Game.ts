@@ -33,11 +33,37 @@ export class Game {
     this.bricks = [];
     this.initBricks();
 
+    // --- PC操作 ---
     document.addEventListener("keydown", this.keyDownHandler);
     document.addEventListener("keyup", this.keyUpHandler);
-    canvas.addEventListener("click", this.handleClick);
+
+    // --- スマホ操作 ---
+    canvas.addEventListener("touchstart", this.handleTouchStart);
+    canvas.addEventListener("touchmove", this.handleTouchMove, { passive: false });
+    canvas.addEventListener("touchend", this.handleTouchEnd);
+
+    // --- Restart (PCクリック) ---
+    canvas.addEventListener("click", this.handleRestartClick);
   }
 
+  // 表示縮小時の座標スケールを取得（CSSサイズ→内部座標へ）
+  private getScale() {
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    return { rect, scaleX, scaleY };
+  }
+
+  // クライアント座標→キャンバス内部座標に変換
+  private toCanvasXY(clientX: number, clientY: number) {
+    const { rect, scaleX, scaleY } = this.getScale();
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  }
+
+  // --- ブロック初期化 ---
   initBricks() {
     this.bricks = [];
     for (let c = 0; c < this.brickColumnCount; c++) {
@@ -66,6 +92,7 @@ export class Game {
     this.initBricks();
   }
 
+  // --- PC操作 ---
   keyDownHandler = (e: KeyboardEvent) => {
     if (e.key === "Right" || e.key === "ArrowRight") this.rightPressed = true;
     if (e.key === "Left" || e.key === "ArrowLeft") this.leftPressed = true;
@@ -75,36 +102,83 @@ export class Game {
     if (e.key === "Left" || e.key === "ArrowLeft") this.leftPressed = false;
   };
 
-  handleClick = (e: MouseEvent) => {
+  // --- スマホ操作 ---
+  handleTouchStart = (e: TouchEvent) => {
+    const { x } = this.toCanvasXY(e.touches[0].clientX, e.touches[0].clientY);
+    if (x < this.canvas.width / 2) {
+      this.leftPressed = true;
+      this.rightPressed = false;
+    } else {
+      this.rightPressed = true;
+      this.leftPressed = false;
+    }
+  };
+
+  handleTouchMove = (e: TouchEvent) => {
+    e.preventDefault();
+    const { x } = this.toCanvasXY(e.touches[0].clientX, e.touches[0].clientY);
+    this.paddle.x = x - this.paddle.width / 2;
+    if (this.paddle.x < 0) this.paddle.x = 0;
+    if (this.paddle.x + this.paddle.width > this.canvas.width) {
+      this.paddle.x = this.canvas.width - this.paddle.width;
+    }
+  };
+
+  handleTouchEnd = (e: TouchEvent) => {
+    this.leftPressed = false;
+    this.rightPressed = false;
+
     if (this.state === "GAMEOVER" || this.state === "WIN") {
-      const rect = this.canvas.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+      if (e.changedTouches.length > 0) {
+        const { x, y } = this.toCanvasXY(
+          e.changedTouches[0].clientX,
+          e.changedTouches[0].clientY
+        );
+        const btnX = this.canvas.width / 2 - 50;
+        const btnY = this.canvas.height / 2 + 10;
+        const btnW = 100;
+        const btnH = 35;
+        if (x >= btnX && x <= btnX + btnW && y >= btnY && y <= btnY + btnH) {
+          this.reset();
+        }
+      }
+    }
+  };
 
-      // ボタン領域を確認
-      const btnX = this.canvas.width / 2 - 40;
-      const btnY = this.canvas.height / 2 + 20;
-      const btnW = 80;
-      const btnH = 30;
-
-      if (
-        clickX >= btnX &&
-        clickX <= btnX + btnW &&
-        clickY >= btnY &&
-        clickY <= btnY + btnH
-      ) {
+  // --- Restartクリック ---
+  handleRestartClick = (e: MouseEvent) => {
+    if (this.state === "GAMEOVER" || this.state === "WIN") {
+      const { x, y } = this.toCanvasXY(e.clientX, e.clientY);
+      const btnX = this.canvas.width / 2 - 50;
+      const btnY = this.canvas.height / 2 + 10;
+      const btnW = 100;
+      const btnH = 35;
+      if (x >= btnX && x <= btnX + btnW && y >= btnY && y <= btnY + btnH) {
         this.reset();
       }
     }
   };
 
+  // --- ライフを失う処理 ---
+  private loseLife() {
+    this.lives--;
+    if (this.lives === 0) {
+      this.state = "GAMEOVER";
+    } else {
+      // パドル中央から再開
+      const startX = this.paddle.x + this.paddle.width / 2;
+      const startY = this.canvas.height - 30;
+      this.ball = new Ball(startX, startY);
+    }
+  }
+
+  // --- 更新 ---
   update() {
     if (this.state !== "PLAYING") return;
 
     const ball = this.ball;
     const paddle = this.paddle;
 
-    // ボール移動
     ball.x += ball.dx;
     ball.y += ball.dy;
 
@@ -124,17 +198,11 @@ export class Game {
       if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
         ball.dy = -ball.dy;
       } else {
-        this.lives--;
-        if (this.lives === 0) {
-          this.state = "GAMEOVER";
-        } else {
-          this.ball = new Ball(this.canvas.width / 2, this.canvas.height - 30);
-          this.paddle = new Paddle(this.canvas.width);
-        }
+        this.loseLife();
       }
     }
 
-    // パドル移動
+    // パドル移動（PC操作）
     if (this.rightPressed && paddle.x < this.canvas.width - paddle.width)
       paddle.x += 5;
     if (this.leftPressed && paddle.x > 0) paddle.x -= 5;
@@ -162,26 +230,27 @@ export class Game {
     }
   }
 
+  // --- 描画 ---
   draw() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // ボール（オレンジ）
+    // ボール
     this.ball.color = "#FF6B35";
     this.ball.draw(ctx);
 
-    // パドル（ブルー）
+    // パドル
     ctx.fillStyle = "#3B82F6";
     this.paddle.draw(ctx, this.canvas.height);
 
-    // ブロック（パステルカラーで行ごとに色分け）
-    const colors = ["#60A5FA", "#34D399", "#FBBF24"]; // ブルー, グリーン, イエロー
+    // ブロック
+    const colors = ["#60A5FA", "#34D399", "#FBBF24"];
     this.bricks.forEach((row, r) =>
       row.forEach((b) => {
         if (b.status === 1) {
           ctx.fillStyle = colors[r % colors.length];
           ctx.fillRect(b.x, b.y, this.brickWidth, this.brickHeight);
-          ctx.strokeStyle = "#fff"; // 境界を白で薄く
+          ctx.strokeStyle = "#fff";
           ctx.strokeRect(b.x, b.y, this.brickWidth, this.brickHeight);
         }
       })
@@ -189,13 +258,13 @@ export class Game {
 
     // スコア & ライフ
     ctx.font = "16px 'Segoe UI', sans-serif";
-    ctx.fillStyle = "#374151"; // グレー文字
+    ctx.fillStyle = "#374151";
     ctx.textAlign = "left";
     ctx.fillText(`Score: ${this.score}`, 8, 20);
     ctx.textAlign = "right";
     ctx.fillText(`Lives: ${this.lives}`, this.canvas.width - 8, 20);
 
-    // 終了画面（モダンカード風）
+    // 終了画面
     if (this.state === "GAMEOVER" || this.state === "WIN") {
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.fillRect(
@@ -214,7 +283,6 @@ export class Game {
         this.canvas.height / 2 - 20
       );
 
-      // Restart ボタン
       const btnX = this.canvas.width / 2 - 50;
       const btnY = this.canvas.height / 2 + 10;
       ctx.fillStyle = "#3B82F6";

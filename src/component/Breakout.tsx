@@ -6,8 +6,12 @@ const Breakout: React.FC = () => {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    canvas.width = 480;
-    canvas.height = 320;
+    const baseWidth = 480;
+    const baseHeight = 320;
+
+    // デフォルトサイズ
+    canvas.width = baseWidth;
+    canvas.height = baseHeight;
 
     const game = new Game(canvas);
 
@@ -23,18 +27,13 @@ const Breakout: React.FC = () => {
   }, []);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        background: "#f4f4f4", // モダンな淡い背景
-      }}
-    >
+    <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
       <canvas
         ref={canvasRef}
         style={{
+          width: "100%",          // 画面幅に合わせる
+          maxWidth: "480px",      // PCでは480pxで止める
+          aspectRatio: "3 / 2",   // アスペクト比を維持
           border: "2px solid #e5e7eb",
           borderRadius: "12px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
